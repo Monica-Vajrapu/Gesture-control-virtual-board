@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Virtual Whiteboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Gesture-Based Whiteboard</h1>
+            <div class="controls">
+                <div class="doc-controls">
+                    <input type="file" id="doc-upload" accept=".pptx,.ppt,.docx,.doc" style="display: none;">
+                    <button id="upload-btn">Upload Doc</button>
+                    <div id="slide-nav" class="hidden">
+                        <span id="slide-info">Slide 0/0</span>
+                    </div>
+                </div>
+                <button id="clear-btn">Clear Canvas</button>
+                <button id="help-btn">Gesture Guide</button>
+                <div id="gesture-indicator">Gesture: <span id="current-gesture">NONE</span></div>
+            </div>
+        </header>
+
+        <main>
+            <div id="guide-panel" class="hidden">
+                <h2>Gesture Guide</h2>
+                <div class="gesture-item"><span>☝️</span> <strong>Draw:</strong> 1 Finger (Index) up</div>
+                <div class="gesture-item"><span>✌️</span> <strong>Erase:</strong> 2 Fingers up</div>
+                <div class="gesture-item"><span>🤟</span> <strong>Color:</strong> 3 Fingers up</div>
+                <div class="gesture-item"><span>🤚</span> <strong>Next:</strong> Open Palm Swipe Left</div>
+                <div class="gesture-item"><span>✋</span> <strong>Prev:</strong> Open Palm Swipe Right</div>
+                <div class="gesture-item"><span>✊</span> <strong>Clear:</strong> Closed Fist</div>
+                <button id="close-guide">Close</button>
+            </div>
+            <canvas id="whiteboard"></canvas>
+            <div class="video-container">
+                <video id="webcam" autoplay playsinline></video>
+            </div>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>
