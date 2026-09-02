@@ -8,7 +8,7 @@ import time
 import os
 import uuid
 from werkzeug.utils import secure_filename
-import win32com.client
+import pywin32.client
 import pythoncom
 
 app = Flask(__name__)
