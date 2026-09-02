@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 import base64
 from hand_tracker import HandTracker
-import pyautogui
 import time
 import os
 import uuid
