@@ -8,8 +8,19 @@ import time
 import os
 import uuid
 from werkzeug.utils import secure_filename
-import pywin32.client
-import pythoncom
+
+try:
+    import win32com.client
+    import pythoncom
+    HAS_WIN32COM = True
+except ImportError:
+    HAS_WIN32COM = False
+
+try:
+    import pyautogui
+    HAS_PYAUTOGUI = True
+except Exception:
+    HAS_PYAUTOGUI = False
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -53,13 +64,15 @@ def upload_file():
     output_folder = os.path.join(os.path.abspath(app.config['SLIDES_FOLDER']), unique_id)
     os.makedirs(output_folder, exist_ok=True)
     
+    if not HAS_WIN32COM:
+        return jsonify(success=False, error="PowerPoint/Word conversion via MS Office COM is only supported when running locally on Windows.")
+    
     slides = []
     try:
         pythoncom.CoInitialize()
         if filename.endswith(('.pptx', '.ppt')):
             slides = convert_ppt_to_images(abs_file_path, output_folder)
         elif filename.endswith(('.docx', '.doc')):
-            # For Word, we'll try a similar approach but it might be limited
             slides = convert_word_to_images(abs_file_path, output_folder)
         else:
             return jsonify(success=False, error="Unsupported file type")
@@ -74,6 +87,8 @@ def upload_file():
         pythoncom.CoUninitialize()
 
 def convert_ppt_to_images(file_path, output_folder):
+    if not HAS_WIN32COM:
+        raise Exception("Win32COM is not available on this operating system.")
     powerpoint = win32com.client.Dispatch("PowerPoint.Application")
     ppt = powerpoint.Presentations.Open(file_path, WithWindow=False)
     # 17 = ppSaveAsJPG
@@ -87,16 +102,10 @@ def convert_ppt_to_images(file_path, output_folder):
     return images
 
 def convert_word_to_images(file_path, output_folder):
+    if not HAS_WIN32COM:
+        raise Exception("Win32COM is not available on this operating system.")
     word = win32com.client.Dispatch("Word.Application")
     doc = word.Documents.Open(file_path)
-    
-    # Word doesn't have a direct "SaveAsImage" for all pages.
-    # A common workaround is to save as PDF, but then we still need an image converter.
-    # For simplicity, we'll notify that Word support is experimental or limited to the first page if we can.
-    # Actually, let's try to SaveAs PDF and then inform the user if we can't do more.
-    # For the purpose of this demo, I will try to use PPT instead if they have it.
-    # But I can try to use a little trick for Word: selection.copy() and paste to a new PPT then export?
-    # Too complex. I'll just implement PPT properly and provide a placeholder for Word.
     doc.Close()
     word.Quit()
     raise Exception("Word conversion currently requires additional libraries. Please use PPTX for now.")
@@ -127,11 +136,14 @@ def handle_image(data):
         current_time = time.time()
         
         discrete_gestures = ["SWIPE_LEFT", "SWIPE_RIGHT"]
-        if gesture in discrete_gestures and (current_time - last_gesture_time > cooldown_period):
-            if gesture == "SWIPE_LEFT":
-                pyautogui.press('right')
-            elif gesture == "SWIPE_RIGHT":
-                pyautogui.press('left')
+        if HAS_PYAUTOGUI and gesture in discrete_gestures and (current_time - last_gesture_time > cooldown_period):
+            try:
+                if gesture == "SWIPE_LEFT":
+                    pyautogui.press('right')
+                elif gesture == "SWIPE_RIGHT":
+                    pyautogui.press('left')
+            except Exception as pe:
+                print(f"PyAutoGUI simulation error: {pe}")
             last_gesture_time = current_time
             
         # Tracking tip of index finger (ID 8)
@@ -144,4 +156,5 @@ def handle_image(data):
     })
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    socketio.run(app, host='0.0.0.0', port=port)
